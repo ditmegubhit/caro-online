@@ -204,6 +204,11 @@
       <span class="player-chip x" id="chip-x">X: —</span>
       <span class="player-chip o" id="chip-o">O: —</span>
     </div>
+    <div class="scoreboard" id="online-scoreboard">
+      <div class="score x"><span class="label" id="online-label-x">X</span><span class="value" id="online-score-x">0</span></div>
+      <div class="score"><span class="label">HÒA</span><span class="value" id="online-score-d">0</span></div>
+      <div class="score o"><span class="label" id="online-label-o">O</span><span class="value" id="online-score-o">0</span></div>
+    </div>
     <div class="lobby-actions">
       <button class="btn primary" id="btn-ready" type="button">Sẵn sàng</button>
       <button class="btn ghost" id="btn-leave" type="button">Rời phòng</button>
@@ -280,6 +285,11 @@
   var btnCopyCode = document.getElementById('btn-copy-code');
   var chipX = document.getElementById('chip-x');
   var chipO = document.getElementById('chip-o');
+  var onlineScoreXEl = document.getElementById('online-score-x');
+  var onlineScoreOEl = document.getElementById('online-score-o');
+  var onlineScoreDEl = document.getElementById('online-score-d');
+  var onlineLabelXEl = document.getElementById('online-label-x');
+  var onlineLabelOEl = document.getElementById('online-label-o');
   var btnReady = document.getElementById('btn-ready');
   var btnLeave = document.getElementById('btn-leave');
 
@@ -666,6 +676,14 @@
     }
     if (meP) myMark = meP.mark;
     renderPlayerChips(state.players);
+
+    if (state.score){
+      onlineScoreXEl.textContent = state.score.X;
+      onlineScoreOEl.textContent = state.score.O;
+      onlineScoreDEl.textContent = state.score.D;
+      onlineLabelXEl.textContent = myMark === 'X' ? 'X (bạn)' : 'X';
+      onlineLabelOEl.textContent = myMark === 'O' ? 'O (bạn)' : 'O';
+    }
 
     var freshEmpty = state.board.every(function(v){ return !v; });
     if (freshEmpty && onlineBoard.some(function(v){ return v; })) resetBoardVisual();

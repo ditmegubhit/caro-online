@@ -53,6 +53,7 @@ function makeRoom(password) {
     over: null,
     pendingLeave: null,
     emptySince: null,
+    score: { X: 0, O: 0, D: 0 },
   };
   rooms.set(id, room);
   return room;
@@ -70,6 +71,7 @@ function roomPublicState(room, forClientId) {
     turn: room.turn,
     started: room.started,
     over: room.over,
+    score: room.score,
     pendingLeave: room.pendingLeave ? { byYou: room.pendingLeave === forClientId } : null,
     players: room.players.map((p) => ({
       mark: p.mark,
@@ -197,6 +199,8 @@ wss.on('connection', (ws) => {
         room.over = result;
         room.started = false;
         room.players.forEach((p) => { p.ready = false; });
+        if (result.draw) room.score.D++;
+        else room.score[result.winner]++;
       } else {
         room.turn = room.turn === 'X' ? 'O' : 'X';
       }

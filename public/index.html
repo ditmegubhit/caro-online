@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thách mày thắng Caro tao được đấy</title>
+<style>
+  :root{
+    --desk:#e4ddce;
+    --desk-grain:#d8cfb9;
+    --paper:#fbf9f2;
+    --rule-line:#bcd6ea;
+    --margin-line:#e08a8a;
+    --graphite:#2c2a26;
+    --graphite-soft:#6b665c;
+    --ink-x:#2451a4;
+    --ink-o:#c23b3b;
+    --highlight:#f4d35e;
+    --hole:#e4ddce;
+    --focus-ring:#2c2a26;
+    --shadow: rgba(60,50,30,0.18);
+    --danger:#b5423f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --desk:#171310; --desk-grain:#1f1a15; --paper:#f4ecd8;
+      --rule-line:#a9c7e8; --margin-line:#d9797e;
+      --graphite:#241f16; --graphite-soft:#6e6353;
+      --ink-x:#1d3f8f; --ink-o:#a52d2d;
+      --highlight:#eec84c; --hole:#171310; --focus-ring:#f4ecd8;
+      --shadow: rgba(0,0,0,0.55); --danger:#c25a55;
+    }
+  }
+  :root[data-theme="dark"]{
+    --desk:#171310; --desk-grain:#1f1a15; --paper:#f4ecd8;
+    --rule-line:#a9c7e8; --margin-line:#d9797e;
+    --graphite:#241f16; --graphite-soft:#6e6353;
+    --ink-x:#1d3f8f; --ink-o:#a52d2d;
+    --highlight:#eec84c; --hole:#171310; --focus-ring:#f4ecd8;
+    --shadow: rgba(0,0,0,0.55); --danger:#c25a55;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% 0%, var(--desk-grain), transparent 60%),
+      var(--desk);
+    color:var(--graphite);
+    font-family: -apple-system, "Segoe UI", "Noto Sans", system-ui, sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(14px, 4vw, 40px);
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .page{
+    position:relative;
+    width:min(96vw, 560px);
+    background:var(--paper);
+    border-radius:6px;
+    box-shadow: 0 18px 40px -12px var(--shadow), 0 2px 0 var(--shadow);
+    padding: 30px 22px 24px 40px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 30px, var(--rule-line) 31px);
+    background-position: 0 110px;
+  }
+  .margin{ position:absolute; left:24px; top:0; bottom:0; width:2px; background:var(--margin-line); opacity:0.75; }
+  .holes{ position:absolute; top:-10px; left:0; right:0; display:flex; justify-content:space-evenly; padding:0 20px; }
+  .holes span{ width:14px; height:14px; border-radius:50%; background:var(--hole); box-shadow: inset 0 2px 3px var(--shadow); display:block; }
+
+  header{ text-align:center; margin-bottom:6px; }
+  h1{ margin:0; font-size:clamp(19px, 5vw, 26px); font-weight:800; letter-spacing:-0.005em; line-height:1.2; color:var(--graphite); text-wrap:balance; }
+  h1 .underline{ display:block; width:min(240px, 70%); height:10px; margin:4px auto 0; }
+  h1 .underline path{ stroke:var(--highlight); stroke-width:9; fill:none; stroke-linecap:round; opacity:0.8; }
+  .subtitle{ margin:8px 0 16px; font-size:14px; color:var(--graphite-soft); text-align:center; }
+
+  .mode-row{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
+  .mode-btn{ font:inherit; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; border:1.5px solid var(--graphite-soft); background:transparent; color:var(--graphite); cursor:pointer; }
+  .mode-btn[aria-pressed="true"]{ background:var(--graphite); color:var(--paper); border-color:var(--graphite); }
+  .mode-btn:focus-visible{ outline:2px solid var(--focus-ring); outline-offset:2px; }
+
+  .scoreboard{ display:flex; justify-content:center; gap:18px; margin-bottom:14px; font-variant-numeric: tabular-nums; }
+  .score{ text-align:center; min-width:52px; }
+  .score .label{ display:block; font-size:11px; letter-spacing:0.04em; color:var(--graphite-soft); }
+  .score .value{ display:block; font-size:20px; font-weight:800; }
+  .score.x .value{ color:var(--ink-x); }
+  .score.o .value{ color:var(--ink-o); }
+
+  .status{ text-align:center; font-size:15px; font-weight:600; min-height:20px; margin-bottom:10px; color:var(--graphite); }
+  .status .turn-x{ color:var(--ink-x); }
+  .status .turn-o{ color:var(--ink-o); }
+
+  .board-wrap{ position:relative; width:100%; max-width:480px; aspect-ratio:1/1; margin:0 auto; }
+  .grid-lines, .win-overlay{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .grid-lines path{ stroke:var(--graphite-soft); stroke-width:2; fill:none; stroke-linecap:round; opacity:0.5; stroke-dasharray:1; stroke-dashoffset:1; animation: draw 0.6s ease forwards; }
+
+  .cells{ position:relative; display:grid; grid-template-columns:repeat(12,1fr); grid-template-rows:repeat(12,1fr); width:100%; height:100%; }
+  .cell{ background:transparent; border:none; padding:0; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cell:focus-visible{ outline:2px solid var(--focus-ring); outline-offset:-3px; border-radius:5px; }
+  .cell svg{ width:66%; height:66%; overflow:visible; }
+  .cell path{ stroke-width:11; fill:none; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation: draw 0.22s ease forwards; }
+  .cell.x path{ stroke:var(--ink-x); }
+  .cell.x path:nth-child(2){ animation-delay:0.12s; }
+  .cell.o path{ stroke:var(--ink-o); }
+  .cell[disabled]{ cursor:default; }
+
+  .win-overlay path{ stroke:var(--highlight); stroke-width:13; fill:none; stroke-linecap:round; opacity:0.55; mix-blend-mode:multiply; stroke-dasharray:1; stroke-dashoffset:1; animation: draw 0.3s ease forwards; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  .controls{ display:flex; gap:10px; justify-content:center; margin-top:20px; }
+  .btn{ font:inherit; font-size:13px; font-weight:700; padding:9px 16px; border-radius:8px; border:none; cursor:pointer; }
+  .btn.primary{ background:var(--ink-x); color:var(--paper); }
+  .btn.ghost{ background:transparent; color:var(--graphite-soft); border:1.5px solid var(--rule-line); }
+  .btn.small{ padding:5px 10px; font-size:12px; }
+  .btn:disabled{ opacity:0.45; cursor:default; }
+  .btn:focus-visible{ outline:2px solid var(--focus-ring); outline-offset:2px; }
+  .btn:hover:not(:disabled){ filter:brightness(1.08); }
+
+  .online-cards{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-bottom:8px; }
+  .online-card{ flex:1 1 200px; background:rgba(255,255,255,0.35); border:1.5px dashed var(--rule-line); border-radius:10px; padding:14px; }
+  .online-card h2{ margin:0 0 10px; font-size:14px; font-weight:800; color:var(--graphite); }
+  .online-card input{
+    width:100%; font:inherit; font-size:14px; padding:8px 10px; margin-bottom:8px;
+    border-radius:6px; border:1.5px solid var(--rule-line); background:var(--paper); color:var(--graphite);
+  }
+  .online-card input:focus-visible{ outline:2px solid var(--focus-ring); outline-offset:1px; }
+  .online-card .btn{ width:100%; }
+  .online-error{ min-height:18px; text-align:center; font-size:13px; font-weight:600; color:var(--danger); margin:4px 0 10px; }
+  .conn-status{ text-align:center; font-size:12px; color:var(--graphite-soft); margin-bottom:10px; }
+
+  .room-panel{ margin-bottom:14px; }
+  .room-code-row{ text-align:center; font-size:14px; margin-bottom:10px; color:var(--graphite-soft); }
+  .room-code-row strong{ font-size:18px; letter-spacing:0.08em; color:var(--graphite); font-variant-numeric: tabular-nums; }
+  .players-row{ display:flex; gap:10px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
+  .player-chip{ font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; border:1.5px solid var(--rule-line); color:var(--graphite-soft); }
+  .player-chip.x{ color:var(--ink-x); border-color:var(--ink-x); }
+  .player-chip.o{ color:var(--ink-o); border-color:var(--ink-o); }
+  .player-chip.ready{ background:var(--highlight); border-color:var(--highlight); color:var(--graphite); }
+  .lobby-actions{ display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,16,10,0.55);
+    display:flex; align-items:center; justify-content:center; padding:20px; z-index:20;
+  }
+  .modal{
+    background:var(--paper); border-radius:10px; padding:22px; max-width:340px; width:100%;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5); text-align:center;
+  }
+  .modal p{ font-size:14px; font-weight:600; margin:0 0 16px; color:var(--graphite); }
+  .modal .row{ display:flex; gap:10px; justify-content:center; }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="margin" aria-hidden="true"></div>
+  <div class="holes" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+  <header>
+    <h1>Thách mày thắng Caro tao được đấy
+      <svg class="underline" viewBox="0 0 220 10" aria-hidden="true">
+        <path d="M4,6 C50,2 100,9 140,4 C170,1 195,7 216,4" pathLength="1"/>
+      </svg>
+    </h1>
+    <p class="subtitle">Bàn 12x12 — 5 quân liên tiếp cùng hàng, cùng cột hoặc đường chéo là thắng</p>
+  </header>
+
+  <div class="mode-row" role="group" aria-label="Chọn chế độ chơi">
+    <button class="mode-btn" id="mode-2p" aria-pressed="true" type="button">2 người chơi</button>
+    <button class="mode-btn" id="mode-ai" aria-pressed="false" type="button">Đấu với máy</button>
+    <button class="mode-btn" id="mode-online" aria-pressed="false" type="button">Chơi online</button>
+  </div>
+
+  <div id="online-entry" hidden>
+    <p class="conn-status" id="conn-status">Đang kết nối máy chủ…</p>
+    <div class="online-cards">
+      <div class="online-card">
+        <h2>Tạo phòng</h2>
+        <input type="password" id="create-pass" placeholder="Đặt mật khẩu phòng" autocomplete="off">
+        <button class="btn primary" id="btn-create-room" type="button">Tạo phòng</button>
+      </div>
+      <div class="online-card">
+        <h2>Vào phòng</h2>
+        <input type="text" id="join-code" placeholder="Mã phòng (6 ký tự)" maxlength="6" autocomplete="off">
+        <input type="password" id="join-pass" placeholder="Mật khẩu phòng" autocomplete="off">
+        <button class="btn primary" id="btn-join-room" type="button">Vào phòng</button>
+      </div>
+    </div>
+    <p class="online-error" id="online-error" aria-live="polite"></p>
+  </div>
+
+  <div id="online-lobby" class="room-panel" hidden>
+    <p class="room-code-row">Mã phòng: <strong id="room-code-display">------</strong>
+      <button class="btn ghost small" id="btn-copy-code" type="button">Sao chép</button>
+    </p>
+    <div class="players-row">
+      <span class="player-chip x" id="chip-x">X: —</span>
+      <span class="player-chip o" id="chip-o">O: —</span>
+    </div>
+    <div class="lobby-actions">
+      <button class="btn primary" id="btn-ready" type="button">Sẵn sàng</button>
+      <button class="btn ghost" id="btn-leave" type="button">Rời phòng</button>
+    </div>
+  </div>
+
+  <div class="scoreboard" id="scoreboard" aria-live="off">
+    <div class="score x"><span class="label">X</span><span class="value" id="score-x">0</span></div>
+    <div class="score"><span class="label">HÒA</span><span class="value" id="score-d">0</span></div>
+    <div class="score o"><span class="label" id="label-o">O</span><span class="value" id="score-o">0</span></div>
+  </div>
+
+  <p class="status" id="status" aria-live="polite">Lượt của <span class="turn-x">X</span></p>
+
+  <div class="board-wrap" id="board-wrap">
+    <svg class="grid-lines" id="grid-lines" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    <svg class="win-overlay" id="win-overlay" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    <div class="cells" id="cells" role="grid" aria-label="Bàn cờ ca-rô 12x12"></div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn primary" id="btn-new" type="button">Ván mới</button>
+    <button class="btn ghost" id="btn-reset-score" type="button">Xóa điểm</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leave-modal" hidden>
+  <div class="modal">
+    <p id="leave-modal-text">Đối thủ muốn rời phòng.</p>
+    <div class="row" id="leave-modal-actions">
+      <button class="btn primary" id="btn-leave-approve" type="button">Đồng ý</button>
+      <button class="btn ghost" id="btn-leave-decline" type="button">Từ chối</button>
+    </div>
+    <div class="row" id="leave-modal-cancel-row" hidden>
+      <button class="btn ghost" id="btn-leave-cancel" type="button">Hủy yêu cầu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SIZE = 12;
+  var CELL = 400 / SIZE;
+  var TOTAL = SIZE * SIZE;
+  var WIN_LEN = 5;
+  var WIN_DIRS = [[0,1],[1,0],[1,1],[1,-1]];
+
+  var X_PATHS = ['M22,20 C40,38 60,58 80,80','M80,20 C60,38 42,58 20,80'];
+  var O_PATH = 'M50,14 C74,14 86,32 86,50 C86,70 70,86 49,86 C28,86 14,70 15,49 C16,30 28,14 50,14 Z';
+
+  var boardEl = document.getElementById('cells');
+  var statusEl = document.getElementById('status');
+  var winOverlay = document.getElementById('win-overlay');
+  var gridLines = document.getElementById('grid-lines');
+  var boardWrap = document.getElementById('board-wrap');
+  var scoreboardEl = document.getElementById('scoreboard');
+  var controlsEl = document.getElementById('controls');
+  var scoreXEl = document.getElementById('score-x');
+  var scoreOEl = document.getElementById('score-o');
+  var scoreDEl = document.getElementById('score-d');
+  var labelOEl = document.getElementById('label-o');
+  var modeBtns = { '2p': document.getElementById('mode-2p'), 'ai': document.getElementById('mode-ai'), 'online': document.getElementById('mode-online') };
+
+  var onlineEntry = document.getElementById('online-entry');
+  var onlineLobby = document.getElementById('online-lobby');
+  var connStatusEl = document.getElementById('conn-status');
+  var onlineErrorEl = document.getElementById('online-error');
+  var createPassInput = document.getElementById('create-pass');
+  var joinCodeInput = document.getElementById('join-code');
+  var joinPassInput = document.getElementById('join-pass');
+  var btnCreateRoom = document.getElementById('btn-create-room');
+  var btnJoinRoom = document.getElementById('btn-join-room');
+  var roomCodeDisplay = document.getElementById('room-code-display');
+  var btnCopyCode = document.getElementById('btn-copy-code');
+  var chipX = document.getElementById('chip-x');
+  var chipO = document.getElementById('chip-o');
+  var btnReady = document.getElementById('btn-ready');
+  var btnLeave = document.getElementById('btn-leave');
+
+  var leaveModal = document.getElementById('leave-modal');
+  var leaveModalText = document.getElementById('leave-modal-text');
+  var leaveModalActions = document.getElementById('leave-modal-actions');
+  var leaveModalCancelRow = document.getElementById('leave-modal-cancel-row');
+  var btnLeaveApprove = document.getElementById('btn-leave-approve');
+  var btnLeaveDecline = document.getElementById('btn-leave-decline');
+  var btnLeaveCancel = document.getElementById('btn-leave-cancel');
+
+  var topMode = '2p';
+  var localSubMode = '2p';
+
+  var board, current, over, thinking;
+  var scores = { X:0, O:0, D:0 };
+
+  var ws = null, wsReady = false;
+  var clientId = getClientId();
+  var inRoom = false;
+  var myMark = null;
+  var onlineBoard = new Array(TOTAL).fill('');
+  var lastRoomState = null;
+
+  function idx(r,c){ return r*SIZE+c; }
+  function rowOf(i){ return Math.floor(i/SIZE); }
+  function colOf(i){ return i%SIZE; }
+  function centerOf(i){ return [colOf(i)*CELL+CELL/2, rowOf(i)*CELL+CELL/2]; }
+  function cellButtons(){ return boardEl.querySelectorAll('.cell'); }
+
+  function buildGridLines(){
+    gridLines.innerHTML = '';
+    var ns = 'http://www.w3.org/2000/svg';
+    for (var k=1;k<SIZE;k++){
+      var x = k*CELL;
+      var j1 = Math.sin(k*1.7)*2.2, j2 = Math.sin(k*2.3+1)*2.2;
+      var vp = document.createElementNS(ns,'path');
+      vp.setAttribute('d', 'M '+(x+j1)+' 6 C '+(x-j2)+' 140, '+(x+j2)+' 260, '+(x-j1)+' 394');
+      vp.setAttribute('pathLength','1');
+      vp.style.animationDelay = (k*0.02)+'s';
+      gridLines.appendChild(vp);
+
+      var y = k*CELL;
+      var j3 = Math.sin(k*1.3+2)*2.2, j4 = Math.sin(k*2.9+3)*2.2;
+      var hp = document.createElementNS(ns,'path');
+      hp.setAttribute('d', 'M 6 '+(y+j3)+' C 140 '+(y-j4)+', 260 '+(y+j4)+', 394 '+(y-j3));
+      hp.setAttribute('pathLength','1');
+      hp.style.animationDelay = (k*0.02+0.15)+'s';
+      gridLines.appendChild(hp);
+    }
+  }
+
+  function buildBoard(){
+    boardEl.innerHTML = '';
+    for (var i=0;i<TOTAL;i++){
+      var b = document.createElement('button');
+      b.className = 'cell';
+      b.type = 'button';
+      b.setAttribute('data-i', i);
+      b.setAttribute('aria-label', 'Hàng ' + (rowOf(i)+1) + ', cột ' + (colOf(i)+1));
+      b.addEventListener('click', onCellClick);
+      boardEl.appendChild(b);
+    }
+  }
+
+  function markSvg(mark){
+    if (mark === 'X') return '<svg viewBox="0 0 100 100"><path d="'+X_PATHS[0]+'" pathLength="1"/><path d="'+X_PATHS[1]+'" pathLength="1"/></svg>';
+    return '<svg viewBox="0 0 100 100"><path d="'+O_PATH+'" pathLength="1"/></svg>';
+  }
+
+  function placeMark(i, mark){
+    var cell = boardEl.querySelector('[data-i="'+i+'"]');
+    if (!cell) return;
+    cell.classList.add(mark.toLowerCase());
+    cell.innerHTML = markSvg(mark);
+    cell.disabled = true;
+  }
+
+  function drawWinLine(cells){
+    var p1 = centerOf(cells[0]), p2 = centerOf(cells[cells.length-1]);
+    var dx = p2[0]-p1[0], dy = p2[1]-p1[1];
+    var len = Math.hypot(dx,dy) || 1;
+    var ex = (dx/len)*14, ey = (dy/len)*14;
+    var p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', 'M '+(p1[0]-ex)+' '+(p1[1]-ey)+' L '+(p2[0]+ex)+' '+(p2[1]+ey));
+    p.setAttribute('pathLength','1');
+    winOverlay.appendChild(p);
+  }
+
+  function resetBoardVisual(){
+    winOverlay.innerHTML = '';
+    var cells = cellButtons();
+    cells.forEach(function(c){ c.className='cell'; c.innerHTML=''; c.disabled=false; });
+  }
+
+  function onCellClick(e){
+    if (topMode === 'online') return onOnlineCellClick(e);
+    return onLocalCellClick(e);
+  }
+
+  // ---------- Local (2 người / đấu máy) ----------
+
+  function newGame(){
+    board = new Array(TOTAL).fill('');
+    current = 'X';
+    over = false;
+    thinking = false;
+    resetBoardVisual();
+    updateLocalStatus();
+  }
+
+  function updateLocalStatus(msg){
+    if (msg){ statusEl.innerHTML = msg; return; }
+    var who = current === 'X' ? '<span class="turn-x">X</span>' : ('<span class="turn-o">' + (localSubMode==='ai'?'Máy':'O') + '</span>');
+    statusEl.innerHTML = 'Lượt của ' + who;
+  }
+
+  function checkResult(b){
+    for (var d=0; d<WIN_DIRS.length; d++){
+      var dr = WIN_DIRS[d][0], dc = WIN_DIRS[d][1];
+      for (var r=0;r<SIZE;r++){
+        for (var c=0;c<SIZE;c++){
+          var endR = r+dr*(WIN_LEN-1), endC = c+dc*(WIN_LEN-1);
+          if (endR<0 || endR>=SIZE || endC<0 || endC>=SIZE) continue;
+          var run = [];
+          for (var k=0;k<WIN_LEN;k++) run.push(idx(r+dr*k, c+dc*k));
+          if (b[run[0]] && run.every(function(cell){ return b[cell]===b[run[0]]; })) return { winner:b[run[0]], cells:run };
+        }
+      }
+    }
+    if (b.every(function(v){ return v; })) return { winner:null, cells:null, draw:true };
+    return null;
+  }
+
+  function finishLocal(result){
+    over = true;
+    var cells = cellButtons();
+    cells.forEach(function(c){ c.disabled = true; });
+    if (result.draw){
+      scores.D++; scoreDEl.textContent = scores.D;
+      updateLocalStatus('Hòa rồi! Kẻ lại vở nào.');
+    } else {
+      drawWinLine(result.cells);
+      if (result.winner === 'X'){ scores.X++; scoreXEl.textContent = scores.X; }
+      else { scores.O++; scoreOEl.textContent = scores.O; }
+      var name = result.winner === 'X' ? 'X' : (localSubMode==='ai' ? 'Máy' : 'O');
+      var cls = result.winner === 'X' ? 'turn-x' : 'turn-o';
+      updateLocalStatus('<span class="'+cls+'">'+name+'</span> thắng ván này!');
+    }
+  }
+
+  function placeLocal(i, mark){
+    board[i] = mark;
+    placeMark(i, mark);
+  }
+
+  function onLocalCellClick(e){
+    if (over || thinking) return;
+    var i = Number(e.currentTarget.getAttribute('data-i'));
+    if (board[i]) return;
+    placeLocal(i, current);
+    var result = checkResult(board);
+    if (result){ finishLocal(result); return; }
+    current = current === 'X' ? 'O' : 'X';
+    updateLocalStatus();
+    if (localSubMode === 'ai' && current === 'O'){
+      thinking = true;
+      updateLocalStatus('Máy đang suy nghĩ…');
+      setTimeout(aiMove, 380);
+    }
+  }
+
+  function aiMove(){
+    var i = bestMove(board);
+    thinking = false;
+    if (i === -1 || over) return;
+    placeLocal(i, 'O');
+    var result = checkResult(board);
+    if (result){ finishLocal(result); return; }
+    current = 'X';
+    updateLocalStatus();
+  }
+
+  function countLine(b, r, c, dr, dc, mark){
+    var count = 0, rr = r, cc = c;
+    while (rr>=0 && rr<SIZE && cc>=0 && cc<SIZE && b[idx(rr,cc)] === mark){ count++; rr += dr; cc += dc; }
+    return count;
+  }
+
+  function runLength(b, i, mark){
+    var r = rowOf(i), c = colOf(i);
+    b[i] = mark;
+    var h = countLine(b,r,c,0,-1,mark) + countLine(b,r,c,0,1,mark) - 1;
+    var v = countLine(b,r,c,-1,0,mark) + countLine(b,r,c,1,0,mark) - 1;
+    var d1 = countLine(b,r,c,-1,-1,mark) + countLine(b,r,c,1,1,mark) - 1;
+    var d2 = countLine(b,r,c,-1,1,mark) + countLine(b,r,c,1,-1,mark) - 1;
+    b[i] = '';
+    return Math.max(h, v, d1, d2);
+  }
+
+  function patternValue(len, openEnds){
+    if (len >= WIN_LEN) return 1000000;
+    if (len === WIN_LEN-1) return openEnds===2 ? 60000 : openEnds===1 ? 6000 : 50;
+    if (len === WIN_LEN-2) return openEnds===2 ? 4000 : openEnds===1 ? 400 : 40;
+    if (len === WIN_LEN-3) return openEnds===2 ? 300 : openEnds===1 ? 60 : 10;
+    if (len === WIN_LEN-4) return openEnds===2 ? 30 : openEnds===1 ? 12 : 3;
+    return openEnds===2 ? 6 : 2;
+  }
+
+  function directionScore(b, i, mark, dr, dc){
+    var r = rowOf(i), c = colOf(i);
+    b[i] = mark;
+    var back = countLine(b, r-dr, c-dc, -dr, -dc, mark);
+    var fwd = countLine(b, r+dr, c+dc, dr, dc, mark);
+    var len = back + fwd + 1;
+    var beforeR = r-dr*(back+1), beforeC = c-dc*(back+1);
+    var afterR = r+dr*(fwd+1), afterC = c+dc*(fwd+1);
+    var openBefore = beforeR>=0 && beforeR<SIZE && beforeC>=0 && beforeC<SIZE && b[idx(beforeR,beforeC)]==='';
+    var openAfter = afterR>=0 && afterR<SIZE && afterC>=0 && afterC<SIZE && b[idx(afterR,afterC)]==='';
+    b[i] = '';
+    return patternValue(len, (openBefore?1:0)+(openAfter?1:0));
+  }
+
+  function threatScore(b, i, mark){
+    return directionScore(b,i,mark,0,1) + directionScore(b,i,mark,1,0)
+      + directionScore(b,i,mark,1,1) + directionScore(b,i,mark,1,-1);
+  }
+
+  function opponentCanWinAfter(b, mark){
+    for (var i=0;i<TOTAL;i++){ if (!b[i] && runLength(b, i, mark) >= WIN_LEN) return true; }
+    return false;
+  }
+
+  function bestMove(b){
+    var empties = [];
+    for (var i=0;i<TOTAL;i++){ if (!b[i]) empties.push(i); }
+    if (!empties.length) return -1;
+    for (var w1=0; w1<empties.length; w1++){ if (runLength(b, empties[w1], 'O') >= WIN_LEN) return empties[w1]; }
+    for (var w2=0; w2<empties.length; w2++){ if (runLength(b, empties[w2], 'X') >= WIN_LEN) return empties[w2]; }
+
+    var scored = empties.map(function(i2){
+      var r = rowOf(i2), c = colOf(i2);
+      var center = -(Math.abs(r-(SIZE-1)/2) + Math.abs(c-(SIZE-1)/2));
+      var score = threatScore(b,i2,'O') + threatScore(b,i2,'X')*0.92 + center*3 + Math.random()*4;
+      return { i:i2, score:score };
+    });
+    scored.sort(function(a,c){ return c.score - a.score; });
+    var topN = scored.slice(0, Math.min(10, scored.length));
+    for (var t=0;t<topN.length;t++){
+      var cand = topN[t].i;
+      b[cand] = 'O';
+      var opponentWinsNext = opponentCanWinAfter(b, 'X');
+      b[cand] = '';
+      if (!opponentWinsNext) return cand;
+    }
+    return topN[0].i;
+  }
+
+  // ---------- Chế độ online ----------
+
+  function getClientId(){
+    var k = 'caro_client_id';
+    var v = localStorage.getItem(k);
+    if (!v){
+      v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c'+Math.random().toString(36).slice(2)+Date.now().toString(36));
+      localStorage.setItem(k, v);
+    }
+    return v;
+  }
+
+  function wsSend(obj){ if (ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
+
+  function sendWhenReady(obj){
+    ensureSocket();
+    if (wsReady){ wsSend(obj); return; }
+    var tries = 0;
+    var iv = setInterval(function(){
+      tries++;
+      if (wsReady){ clearInterval(iv); wsSend(obj); }
+      else if (tries > 60){ clearInterval(iv); showOnlineError('Không kết nối được máy chủ, thử lại.'); }
+    }, 100);
+  }
+
+  function ensureSocket(){
+    if (ws && (ws.readyState===0 || ws.readyState===1)) return;
+    connStatusEl.textContent = 'Đang kết nối máy chủ…';
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host);
+    ws.addEventListener('open', function(){ wsSend({ type:'hello', clientId: clientId }); });
+    ws.addEventListener('message', function(ev){
+      var msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+      handleServerMessage(msg);
+    });
+    ws.addEventListener('close', function(){
+      wsReady = false;
+      connStatusEl.textContent = 'Mất kết nối máy chủ, đang thử lại…';
+      setTimeout(function(){ if (topMode==='online') ensureSocket(); }, 1500);
+    });
+  }
+
+  function handleServerMessage(msg){
+    if (msg.type === 'hello_ack'){
+      wsReady = true;
+      connStatusEl.textContent = 'Đã kết nối. Tạo phòng mới hoặc vào phòng có sẵn.';
+      return;
+    }
+    if (msg.type === 'joined'){
+      inRoom = true; myMark = msg.mark; onlineBoard = new Array(TOTAL).fill('');
+      clearOnlineError(); showLobby();
+      return;
+    }
+    if (msg.type === 'rejoined'){ inRoom = true; showLobby(); return; }
+    if (msg.type === 'room_update'){ onRoomUpdate(msg.state); return; }
+    if (msg.type === 'room_closed'){
+      inRoom = false; lastRoomState = null; onlineBoard = new Array(TOTAL).fill('');
+      resetBoardVisual(); showOnlineEntry();
+      updateOnlineStatus('Phòng đã đóng.');
+      return;
+    }
+    if (msg.type === 'error'){ showOnlineError(msg.message); return; }
+  }
+
+  function showOnlineError(m){ onlineErrorEl.textContent = m; }
+  function clearOnlineError(){ onlineErrorEl.textContent = ''; }
+  function updateOnlineStatus(html){ statusEl.innerHTML = html; }
+
+  function showOnlineEntry(){
+    onlineEntry.hidden = false;
+    onlineLobby.hidden = true;
+    scoreboardEl.hidden = true;
+    controlsEl.hidden = true;
+    boardWrap.hidden = true;
+    statusEl.innerHTML = '';
+  }
+
+  function showLobby(){
+    onlineEntry.hidden = true;
+    onlineLobby.hidden = false;
+    scoreboardEl.hidden = true;
+    controlsEl.hidden = true;
+    boardWrap.hidden = false;
+  }
+
+  function showLocalUI(){
+    onlineEntry.hidden = true;
+    onlineLobby.hidden = true;
+    leaveModal.hidden = true;
+    scoreboardEl.hidden = false;
+    controlsEl.hidden = false;
+    boardWrap.hidden = false;
+  }
+
+  function renderPlayerChips(players){
+    var px = players.filter(function(p){ return p.mark==='X'; })[0];
+    var po = players.filter(function(p){ return p.mark==='O'; })[0];
+    chipX.textContent = 'X: ' + (px ? (px.isYou?'Bạn':'Đối thủ') + (px.ready?' ✓':'') : '—');
+    chipO.textContent = 'O: ' + (po ? (po.isYou?'Bạn':'Đối thủ') + (po.ready?' ✓':'') : 'đang chờ…');
+    chipX.classList.toggle('ready', !!(px && px.ready));
+    chipO.classList.toggle('ready', !!(po && po.ready));
+  }
+
+  function onRoomUpdate(state){
+    lastRoomState = state;
+    showLobby();
+    roomCodeDisplay.textContent = state.roomId;
+
+    var meP = null, oppP = null;
+    for (var pi=0; pi<state.players.length; pi++){
+      if (state.players[pi].isYou) meP = state.players[pi]; else oppP = state.players[pi];
+    }
+    if (meP) myMark = meP.mark;
+    renderPlayerChips(state.players);
+
+    var freshEmpty = state.board.every(function(v){ return !v; });
+    if (freshEmpty && onlineBoard.some(function(v){ return v; })) resetBoardVisual();
+    for (var i=0;i<state.board.length;i++){
+      if (state.board[i] && state.board[i] !== onlineBoard[i]) placeMark(i, state.board[i]);
+    }
+    onlineBoard = state.board.slice();
+
+    if (state.over && state.over.cells) drawWinLine(state.over.cells);
+
+    btnReady.disabled = state.started || !oppP;
+    btnReady.setAttribute('aria-pressed', meP && meP.ready ? 'true' : 'false');
+    btnReady.textContent = meP && meP.ready ? 'Đã sẵn sàng ✓' : 'Sẵn sàng';
+
+    if (!oppP){
+      updateOnlineStatus('Đang chờ đối thủ vào phòng — chia sẻ mã <strong>' + state.roomId + '</strong> cho bạn bè.');
+    } else if (state.started){
+      updateOnlineStatus(state.turn === myMark ? '<span class="turn-'+myMark.toLowerCase()+'">Lượt của bạn (' + myMark + ')</span>' : 'Lượt của đối thủ (' + state.turn + ')');
+    } else if (state.over){
+      if (state.over.draw) updateOnlineStatus('Hòa rồi! Bấm "Sẵn sàng" để chơi lại.');
+      else updateOnlineStatus((state.over.winner === myMark ? 'Bạn' : 'Đối thủ') + ' thắng ván này! Bấm "Sẵn sàng" để chơi lại.');
+    } else {
+      updateOnlineStatus('Cả hai cùng bấm "Sẵn sàng" để bắt đầu.');
+    }
+
+    handleLeaveModal(state.pendingLeave);
+  }
+
+  function handleLeaveModal(pendingLeave){
+    if (!pendingLeave){ leaveModal.hidden = true; return; }
+    leaveModal.hidden = false;
+    if (pendingLeave.byYou){
+      leaveModalText.textContent = 'Đang chờ đối thủ đồng ý cho bạn rời phòng…';
+      leaveModalActions.hidden = true;
+      leaveModalCancelRow.hidden = false;
+    } else {
+      leaveModalText.textContent = 'Đối thủ muốn rời phòng. Bạn có đồng ý không?';
+      leaveModalActions.hidden = false;
+      leaveModalCancelRow.hidden = true;
+    }
+  }
+
+  function onOnlineCellClick(e){
+    var st = lastRoomState;
+    if (!st || !st.started || st.over) return;
+    if (st.turn !== myMark) return;
+    var i = Number(e.currentTarget.getAttribute('data-i'));
+    if (onlineBoard[i]) return;
+    wsSend({ type:'move', index:i });
+  }
+
+  btnCreateRoom.addEventListener('click', function(){
+    var pass = createPassInput.value;
+    if (!pass){ showOnlineError('Nhập mật khẩu cho phòng.'); return; }
+    clearOnlineError();
+    sendWhenReady({ type:'create_room', password: pass });
+  });
+
+  btnJoinRoom.addEventListener('click', function(){
+    var code = joinCodeInput.value.trim().toUpperCase();
+    var pass = joinPassInput.value;
+    if (!code){ showOnlineError('Nhập mã phòng.'); return; }
+    if (!pass){ showOnlineError('Nhập mật khẩu phòng.'); return; }
+    clearOnlineError();
+    sendWhenReady({ type:'join_room', roomId: code, password: pass });
+  });
+
+  btnCopyCode.addEventListener('click', function(){
+    var code = roomCodeDisplay.textContent;
+    var restore = btnCopyCode.textContent;
+    var done = function(){ btnCopyCode.textContent = 'Đã chép ✓'; setTimeout(function(){ btnCopyCode.textContent = restore; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(done).catch(function(){});
+    }
+  });
+
+  btnReady.addEventListener('click', function(){ wsSend({ type:'ready' }); });
+  btnLeave.addEventListener('click', function(){ wsSend({ type:'request_leave' }); });
+  btnLeaveApprove.addEventListener('click', function(){ wsSend({ type:'respond_leave', approve:true }); });
+  btnLeaveDecline.addEventListener('click', function(){ wsSend({ type:'respond_leave', approve:false }); });
+  btnLeaveCancel.addEventListener('click', function(){ wsSend({ type:'cancel_leave' }); });
+
+  // ---------- Chuyển chế độ ----------
+
+  function setTopMode(m){
+    topMode = m;
+    modeBtns['2p'].setAttribute('aria-pressed', m==='2p' ? 'true':'false');
+    modeBtns['ai'].setAttribute('aria-pressed', m==='ai' ? 'true':'false');
+    modeBtns['online'].setAttribute('aria-pressed', m==='online' ? 'true':'false');
+
+    if (m === 'online'){
+      resetBoardVisual();
+      onlineBoard = new Array(TOTAL).fill('');
+      ensureSocket();
+      leaveModal.hidden = !(lastRoomState && lastRoomState.pendingLeave);
+      if (inRoom){
+        showLobby();
+        if (lastRoomState) onRoomUpdate(lastRoomState);
+      } else {
+        showOnlineEntry();
+      }
+    } else {
+      leaveModal.hidden = true;
+      showLocalUI();
+      localSubMode = m;
+      labelOEl.textContent = m === 'ai' ? 'MÁY' : 'O';
+      newGame();
+    }
+  }
+
+  modeBtns['2p'].addEventListener('click', function(){ setTopMode('2p'); });
+  modeBtns['ai'].addEventListener('click', function(){ setTopMode('ai'); });
+  modeBtns['online'].addEventListener('click', function(){ setTopMode('online'); });
+  document.getElementById('btn-new').addEventListener('click', newGame);
+  document.getElementById('btn-reset-score').addEventListener('click', function(){
+    scores = { X:0, O:0, D:0 };
+    scoreXEl.textContent = 0; scoreOEl.textContent = 0; scoreDEl.textContent = 0;
+  });
+
+  buildGridLines();
+  buildBoard();
+  newGame();
+})();
+</script>
+</body>
+</html>

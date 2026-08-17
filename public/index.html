@@ -576,8 +576,15 @@
     ws.addEventListener('close', function(){
       wsReady = false;
       connStatusEl.textContent = 'Mất kết nối máy chủ, đang thử lại…';
-      setTimeout(function(){ if (topMode==='online') ensureSocket(); }, 1500);
+      setTimeout(function(){ ensureSocket(); }, 1500);
     });
+  }
+
+  function activateOnlineTab(){
+    topMode = 'online';
+    modeBtns['2p'].setAttribute('aria-pressed', 'false');
+    modeBtns['ai'].setAttribute('aria-pressed', 'false');
+    modeBtns['online'].setAttribute('aria-pressed', 'true');
   }
 
   function handleServerMessage(msg){
@@ -588,10 +595,17 @@
     }
     if (msg.type === 'joined'){
       inRoom = true; myMark = msg.mark; onlineBoard = new Array(TOTAL).fill('');
-      clearOnlineError(); showLobby();
+      clearOnlineError(); activateOnlineTab(); showLobby();
       return;
     }
-    if (msg.type === 'rejoined'){ inRoom = true; showLobby(); return; }
+    if (msg.type === 'rejoined'){
+      inRoom = true;
+      activateOnlineTab();
+      resetBoardVisual();
+      onlineBoard = new Array(TOTAL).fill('');
+      showLobby();
+      return;
+    }
     if (msg.type === 'room_update'){ onRoomUpdate(msg.state); return; }
     if (msg.type === 'room_closed'){
       inRoom = false; lastRoomState = null; onlineBoard = new Array(TOTAL).fill('');
@@ -771,9 +785,14 @@
     scoreXEl.textContent = 0; scoreOEl.textContent = 0; scoreDEl.textContent = 0;
   });
 
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') ensureSocket();
+  });
+
   buildGridLines();
   buildBoard();
   newGame();
+  ensureSocket();
 })();
 </script>
 </body>

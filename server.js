@@ -99,7 +99,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+const HEARTBEAT_MS = 20000;
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) { /* ignore */ }
+  });
+}, HEARTBEAT_MS);
+wss.on('close', () => clearInterval(heartbeatInterval));
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   let clientId = null;
   let roomId = null;
 
@@ -192,8 +205,10 @@ wss.on('connection', (ws) => {
     }
 
     if (msg.type === 'request_leave') {
-      if (room.players.length < 2) {
-        send(ws, { type: 'room_closed' });
+      const opponent = room.players.find((pp) => pp.clientId !== clientId);
+      const opponentConnected = !!(opponent && opponent.ws && opponent.ws.readyState === 1);
+      if (!opponentConnected) {
+        room.players.forEach((p) => send(p.ws, { type: 'room_closed' }));
         rooms.delete(room.id);
         return;
       }
